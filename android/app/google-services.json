@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "221655542371",
+    "project_id": "sacan-25184",
+    "storage_bucket": "sacan-25184.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:221655542371:android:2ee1296f15fd369d436656",
+        "android_client_info": {
+          "package_name": "com.googleauth"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "221655542371-33s2poqiftijoc2qsje7jmjo1vr8jq8t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.googleauth",
+            "certificate_hash": "037d71b7c38b192093e67bb2e2b90715700a4c21"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCI9LBK0qMmscX1YLMJxRaXfwCbNSgIVbs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
