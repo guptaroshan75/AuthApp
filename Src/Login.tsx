@@ -1,14 +1,15 @@
 import { View, Text, TouchableOpacity, StatusBar } from 'react-native'
 import React, { FC, useEffect, useState } from 'react'
-import auth from '@react-native-firebase/auth'
 import { SafeAreaView } from 'react-native';
 import CustomeInput from './Components/CustomeInput';
 import LoginStyle from './Css/LoginStyle';
+import auth from '@react-native-firebase/auth'
 import GoogleLogin from './Components/GoogleLogin';
 import { CommonActions } from '@react-navigation/native'
 import CustomeAlert from './Components/CustomeAlert';
 
 const Login: FC<{ navigation: any }> = ({ navigation }) => {
+    const [currentUser, setCurrentUser] = useState(false)
     const [userInfo, setUserInfo] = useState({
         email: '',
         password: '',
@@ -30,14 +31,6 @@ const Login: FC<{ navigation: any }> = ({ navigation }) => {
         navigation.dispatch(resetAction);
     };
 
-    const handleSocialLogin = () => {
-        const resetAction = CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'HomeScreen' }],
-        });
-        navigation.dispatch(resetAction);
-    };
-
     const handleLogin = async () => {
         if (userInfo.email === '' || userInfo.password === '') {
             setAlertMessage('Please Fill All The Fields');
@@ -45,32 +38,34 @@ const Login: FC<{ navigation: any }> = ({ navigation }) => {
             return;
         }
 
+        setCurrentUser(true)
         const resetAction = CommonActions.reset({
             index: 0,
             routes: [{ name: 'HomeScreen' }],
         });
         navigation.dispatch(resetAction);
-        // try {
-        //     await auth().signInWithEmailAndPassword(userInfo.email, userInfo.password);
-        // } catch (error: any) {
-        //     console.log(error);
-        //     if (error.code === 'auth/user-not-found') {
-        //         setAlertMessage('User Not Found With The Provided Email-Id');
-        //         setAlertModelVisible(true); setAlertLable('Warning')
-        //     } else if (error.code === 'auth/invalid-credential') {
-        //         setAlertMessage('Incorrect Password');
-        //         setAlertModelVisible(true); setAlertLable('Warning')
-        //     } else {
-        //         setAlertMessage('Failed To Sign In Please Try Again Later.');
-        //         setAlertModelVisible(true); setAlertLable('Warning')
-        //     }
-        //     console.error('Sign-in error:', error);
-        // }
+
+        try {
+            await auth().signInWithEmailAndPassword(userInfo.email, userInfo.password);
+        } catch (error: any) {
+            console.log(error);
+            if (error.code === 'auth/user-not-found') {
+                setAlertMessage('User Not Found With The Provided Email-Id');
+                setAlertModelVisible(true); setAlertLable('Warning')
+            } else if (error.code === 'auth/invalid-credential') {
+                setAlertMessage('Incorrect Password');
+                setAlertModelVisible(true); setAlertLable('Warning')
+            } else {
+                setAlertMessage('Failed To Sign In Please Try Again Later.');
+                setAlertModelVisible(true); setAlertLable('Warning')
+            }
+            console.error('Sign-in error:', error);
+        }
     };
 
     useEffect(() => {
         const subscriber = auth().onAuthStateChanged(user => {
-            if (user) {
+            if (user && currentUser) {
                 const resetAction = CommonActions.reset({
                     index: 0,
                     routes: [{ name: 'HomeScreen' }],
@@ -79,7 +74,7 @@ const Login: FC<{ navigation: any }> = ({ navigation }) => {
             }
         });
         return subscriber;
-    }, []);
+    }, [currentUser]);
 
     return (
         <SafeAreaView>
@@ -111,7 +106,7 @@ const Login: FC<{ navigation: any }> = ({ navigation }) => {
                     <View style={LoginStyle.separatorLine} />
                 </View>
 
-                <GoogleLogin onSuccess={handleSocialLogin} />
+                <GoogleLogin navigation={navigation} />
 
                 <Text style={LoginStyle.registerbtn} onPress={() => navigation.navigate('SignUp')}>
                     Don't have an account?

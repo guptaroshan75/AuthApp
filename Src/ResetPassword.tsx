@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Pressable, Modal, Alert } from 'react-native'
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import React, { FC, useState } from 'react'
 import ResetPasswordStyle from './Css/ResetPasswordStyle'
 import CustomeHeader from './Components/CustomeHeader'
@@ -45,7 +45,6 @@ const ResetPassword: FC<{ navigation: any }> = ({ navigation }) => {
         //     setAlertModelVisible(true); setAlertLable('Warning');
         //     return;
         // }
-
         try {
             setIsVisible(true)
         } catch (error) {

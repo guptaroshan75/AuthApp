@@ -4,9 +4,12 @@ import database from '@react-native-firebase/database';
 import ForgotPasswordStyle from './Css/ForgotPasswordStyle';
 import CustomeInput from './Components/CustomeInput';
 import CustomeAlert from './Components/CustomeAlert';
+import sendPasswordResetEmail from "@react-native-firebase/auth";
 
 const ForgotPassword: FC<{ navigation: any }> = ({ navigation }) => {
     const [email, setEmail] = useState<string>('');
+    const [otp, setOtp] = useState<string>('');
+
     const [alertModelVisible, setAlertModelVisible] = useState(false);
     const [alertMessage, setAlertMessage] = useState('')
     const [alertLable, setAlertLable] = useState('')
@@ -15,41 +18,65 @@ const ForgotPassword: FC<{ navigation: any }> = ({ navigation }) => {
         setAlertModelVisible(!alertModelVisible)
     }
 
-    const validateEmail = (email: string): boolean => {
-        const emailRegex: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
+    const generateOTP = () => {
+        return Math.floor(1000 + Math.random() * 9000).toString();
     };
 
     const checkEmailExists = async (email: string) => {
         try {
-            const snapshot = await database().ref('users').orderByKey().equalTo(emailToKey(email))
-                .once('value');
-            console.log('Snapshot', snapshot);
-            return snapshot.exists();
+            const res = await database().ref('Users').orderByChild('email')
+                .equalTo(email).once('value')
+            const userData = res.val();
+            return userData ? Object.keys(userData)[0] : null;
         } catch (error) {
-            return false;
+            console.error(error);
+            return null;
+        }
+    };
+
+    const generateVerificationOTP = async (email: string) => {
+        const OTP = generateOTP();
+        const date = new Date().toISOString().split('T')[0].split('-');
+        const getconvertDate = `${date[2]}/${date[1]}/${date[0]}`
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        const timestamp = `${getconvertDate} ${time}`
+
+        try {
+            await database().ref('Users/' + emailToKey(email)).update({
+                otp: OTP, timestamp: timestamp
+            });
+            setOtp(OTP)
+            return OTP;
+        } catch (error) {
+            return error;
         }
     };
 
     const handleForgotPassword = async () => {
         if (!email) {
-            setAlertMessage('Please Enter Your Email-Id');
-            setAlertModelVisible(true); setAlertLable('Warning')
-            return;
+            setAlertMessage('Please Enter Your Email-Id'); setAlertModelVisible(true);
+            setAlertLable('Warning'); return;
         }
 
-        if (!email || !validateEmail(email)) {
-            setAlertMessage('Invalid Email-Id Format Please Check');
-            setAlertModelVisible(true); setAlertLable('Warning')
-            return;
+        const emailValidationRegex = /\S+@gmail\.com$/;
+        if (!emailValidationRegex.test(email)) {
+            setAlertMessage('Please Enter A Valid Email Address'); setAlertModelVisible(true);
+            setAlertLable('Warning'); return;
         }
 
-        const emailExists = await checkEmailExists(email);
-        navigation.navigate('EmailVerification')
-        if (emailExists) {
-            console.log('Email Exists');
+        const existingUser = await checkEmailExists(email);
+        if (existingUser) {
+            const verificationOTP = await generateVerificationOTP(email);
+            if (verificationOTP) {
+                // navigation.navigate('EmailVerification')
+                console.log('Verification OTP sent:', verificationOTP);
+            } else {
+                setAlertMessage('Failed To Generate OTP'); setAlertModelVisible(true);
+                setAlertLable('Warning'); setEmail(''); return;
+            }
         } else {
-            console.log('Email does not exist');
+            setAlertMessage('Email-Id Does Not Exist In The Database'); setAlertModelVisible(true);
+            setAlertLable('Warning'); setEmail(''); return;
         }
     };
 
@@ -66,8 +93,8 @@ const ForgotPassword: FC<{ navigation: any }> = ({ navigation }) => {
                     reset your password{' '}
                 </Text>
 
-                <CustomeInput label="Email Address" placeholder="Enter your Email" KeyboardType="email-address"
-                    value={email} onChangeText={email => setEmail(email)}
+                <CustomeInput placeholder="Enter your Email" KeyboardType="email-address"
+                    label="Email Address" value={email} onChangeText={email => setEmail(email)}
                 />
 
                 <CustomeAlert message={alertMessage} lable={alertLable} isVisible={alertModelVisible}
@@ -78,8 +105,8 @@ const ForgotPassword: FC<{ navigation: any }> = ({ navigation }) => {
             </View>
 
             <TouchableOpacity style={ForgotPasswordStyle.forgotbtn}
-                // onPress={handleForgotPassword}
-                onPress={() => navigation.navigate('EmailVerification')}
+                onPress={handleForgotPassword}
+            // onPress={() => navigation.navigate('EmailVerification')}
             >
                 <Text style={ForgotPasswordStyle.forgottext}>Continue</Text>
             </TouchableOpacity>

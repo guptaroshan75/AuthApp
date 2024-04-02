@@ -1,12 +1,14 @@
 import { View, Text, ScrollView, KeyboardAvoidingView, TouchableOpacity } from 'react-native'
 import React, { FC, useState } from 'react'
-import { firebase } from '@react-native-firebase/auth';
 import SignUpStyle from './Css/SignUpStyle';
 import CustomeInput from './Components/CustomeInput';
 import CustomeAlert from './Components/CustomeAlert';
+import auth from '@react-native-firebase/auth';
 import database from '@react-native-firebase/database';
+import firebase from '@react-native-firebase/app'
 import GoogleLogin from './Components/GoogleLogin';
 import Feather from 'react-native-vector-icons/Feather';
+import { CommonActions } from '@react-navigation/native'
 
 const SignUp: FC<{ navigation: any }> = ({ navigation }) => {
     const [isChecked, setIsChecked] = useState(false);
@@ -26,30 +28,7 @@ const SignUp: FC<{ navigation: any }> = ({ navigation }) => {
         setIsChecked(!isChecked);
     };
 
-    const registerUser = async (email: string, password: string): Promise<void> => {
-        try {
-            await firebase.auth().createUserWithEmailAndPassword(email, password);
-            addUserEmailToDatabase(email);
-            navigation.navigate('Login');
-        } catch (error: any) {
-            console.log(error);
-            if (error.code === 'auth/email-already-in-use') {
-                setAlertMessage('Email-Id Already Exist');
-                setAlertModelVisible(true); setAlertLable('Warning')
-            } else if (error.code === 'auth/invalid-email') {
-                setAlertMessage('Invalid Email-Id');
-                setAlertModelVisible(true); setAlertLable('Warning')
-            } else if (error.code === 'auth/weak-password') {
-                setAlertMessage('Password Is Not Strong Enough');
-                setAlertModelVisible(true); setAlertLable('Warning')
-            } else {
-                setAlertMessage('Something Went Wrong');
-                setAlertModelVisible(true); setAlertLable('Warning')
-            }
-        }
-    };
-
-    const handleRegister = () => {
+    const handleRegister = async () => {
         if (userInfo.email === '' || userInfo.username === '' || userInfo.password === '') {
             setAlertMessage('Please Fill All The Fields');
             setAlertModelVisible(true); setAlertLable('Warning')
@@ -62,42 +41,56 @@ const SignUp: FC<{ navigation: any }> = ({ navigation }) => {
             return;
         }
 
-        registerUser(userInfo.email, userInfo.password);
-        setUserInfo({ email: '', username: '', password: '' });
-    };
-
-    const addUserEmailToDatabase = (email: string) => {
-        database().ref('users/' + emailToKey(email)).set({ email: email })
-            .then(() => console.log('User email added to database'))
-            .catch(error =>
-                console.error('Error adding user email to database:', error),
-            );
+        try {
+            await auth().createUserWithEmailAndPassword(userInfo?.email, userInfo?.password);
+            const userRef = database().ref('Users/' + emailToKey(userInfo.email));
+            await userRef.set({
+                name: userInfo?.username,
+                email: userInfo?.email,
+                otp: '',
+            });
+            const resetAction = CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+            });
+            navigation.dispatch(resetAction);
+        } catch (error: any) {
+            if (error.code === 'auth/email-already-in-use') {
+                setAlertMessage('Email-Id Already Exist');
+                setAlertModelVisible(true); setAlertLable('Warning')
+            } else if (error.code === 'auth/invalid-email') {
+                setAlertMessage('Invalid Email-Id');
+                setAlertModelVisible(true); setAlertLable('Warning')
+            } else if (error.code === 'auth/weak-password') {
+                setAlertMessage('Password Should Be At Least 6 Characters');
+                setAlertModelVisible(true); setAlertLable('Warning')
+            } else {
+                setAlertMessage('Something Went Wrong');
+                setAlertModelVisible(true); setAlertLable('Warning')
+            }
+        }
     };
 
     const emailToKey = (email: string) => {
         return email.replace('.', ',');
     };
 
-    const handleGoogleLogin = () => {
-        console.log('Login Successfully');
-        navigation.navigate('Home');
-    };
-
     return (
         <KeyboardAvoidingView>
             <ScrollView>
                 <View style={SignUpStyle.container}>
-                    {/* Title and Description */}
                     <Text style={SignUpStyle.title}>Create your new account</Text>
                     <Text style={SignUpStyle.description}>
                         Create an account to start looking for the food you like{' '}
                     </Text>
 
-                    {/* Input Fields */}
-                    <CustomeInput label="Email Address" placeholder="Enter your Email" value={userInfo.email}
+                    <CustomeInput label="Email Address" placeholder="Enter your Email"
+                        value={userInfo.email}
                         onChangeText={text => setUserInfo({ ...userInfo, email: text })}
                     />
-                    <CustomeInput label="User Name" placeholder="Enter User Name" value={userInfo.username}
+                    
+                    <CustomeInput label="User Name" placeholder="Enter User Name"
+                        value={userInfo.username}
                         onChangeText={text => setUserInfo({ ...userInfo, username: text })}
                     />
 
@@ -130,7 +123,7 @@ const SignUp: FC<{ navigation: any }> = ({ navigation }) => {
                         <View style={SignUpStyle.separatorLine} />
                     </View>
 
-                    <GoogleLogin onSuccess={handleGoogleLogin} />
+                    <GoogleLogin navigation={navigation} />
 
                     <Text style={SignUpStyle.signIn} onPress={() => navigation.navigate('Login')}>
                         Have an account?
